@@ -25,8 +25,8 @@ public class Starter {
         };
        // firstThread.start();
 
-
-        if (myInput.next().equals("Server"))
+        String m = myInput.next();
+        if (m.equals("Server"))
         {
             //Server code
             Server server = new Server();
@@ -43,7 +43,7 @@ public class Starter {
             }
         }
 
-        else if (myInput.next().equals("Client"))
+        else if (m.equals("Client"))
         {
             /*
             //Client code

@@ -3,10 +3,8 @@ import java.util.ArrayList;
 public class Person {
 
     int number ;
-    String name ;
     String password ;
-    String key ;
-    ArrayList<Others> otherPersons ;
+    String client_key ;;
 
 
     public int getNumber() {
@@ -17,14 +15,6 @@ public class Person {
         this.number = number;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getPassword() {
         return password;
     }
@@ -33,19 +23,11 @@ public class Person {
         this.password = password;
     }
 
-    public String getKey() {
-        return key;
+    public String getClient_key() {
+        return client_key;
     }
 
-    public void setKey(String key) {
-        this.key = key;
-    }
-
-    public ArrayList<Others> getOtherPersons() {
-        return otherPersons;
-    }
-
-    public void setOtherPersons(ArrayList<Others> otherPersons) {
-        this.otherPersons = otherPersons;
+    public void setClient_key(String client_key) {
+        this.client_key = client_key;
     }
 }

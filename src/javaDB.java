@@ -1,21 +1,39 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 
 public class javaDB {
 
 
+
     public static void main(String[] args)
     {
-        //getConnection() ;
+        // getConnection() ;
+
+        //inserting for the database
+        Person person = new Person();
+        person.setClient_key("i am the first client");
+        person.setNumber(6789);
+        person.setPassword("123");
+        insert(person);
+
+       /* ArrayList<Person> personArrayList = getPersons();
+        for (int i = 0 ; i < personArrayList.size() ; i++)
+        {
+            System.out.print(personArrayList.get(i).getNumber());
+            System.out.print(personArrayList.get(i).getPassword());
+            System.out.println();
+        }*/
+
+
+
     }
     public static Connection getConnection()
     {
         try {
+            // Class .forName("com.mysql.cj.jdbc.Driver"); //The new connector with database
             Class.forName("com.mysql.jdbc.Driver"); //Connector with database
             String url = "jdbc:mysql://localhost:3306/" ; //java data base connectivity
-            String  dataBaseName = "finalProject" ;
+            String  dataBaseName = "testproject" ;
             String  userName = "root" ;
             String  password = "" ;
             Connection connection = DriverManager.getConnection(url+dataBaseName , userName ,password );
@@ -31,17 +49,72 @@ public class javaDB {
         return null;
     }
 
-    public static void insert() //put the parameter of the function
+    public static void insert(Person person) //put the parameter of the function
     {
         Connection connection = getConnection();
+        PreparedStatement statement ;
         try {
-            String sqlInsertStatement = "INSERT INTO 'column name'('id' , 'name' , 'age') Values( , , )" ; //the statement for inserting the data on the DB
-            PreparedStatement statement = connection.prepareStatement(sqlInsertStatement);
-
+            // String sqlInsertStatement = "INSERT INTO 'column name'('id' , 'name' , 'age') Values( , , )" ; //the statement for inserting the data on the DB
+            String sqlInsertStatement = "INSERT INTO `person` (`id`, `number`, `client_key`, `password`) VALUES (NULL, ? , ? , ? )" ;
+            //assert connection != null;
+            statement = connection.prepareStatement(sqlInsertStatement); //لتحضير قاعدة البيانات للاستقبال
+            statement.setInt(1 , person.getNumber()); //1 تعني مكان أول إشارة استفهام
+            statement.setString(2 , person.getClient_key());
+            statement.setString(3 , person.getPassword());
+            statement.execute();
+            connection.close();
         }catch(SQLException ex)
         {
             System.out.println("Could not insert data");
             ex.printStackTrace();
-        }}
+        }
+    }
 
+    public static ArrayList<Person> getClientInformation()
+    {
+        Connection connection = getConnection();
+        Statement statement ;
+        ArrayList<Person>  personArrayList = new ArrayList<>() ;
+
+        try {
+            statement = connection.createStatement() ;
+            ResultSet resultSet = statement.executeQuery("select number , password from person") ;//for saving the result of the query
+
+            while (resultSet.next())
+            {
+                Person person = new Person();
+                person.setNumber(resultSet.getInt("number"));
+                person.setPassword(resultSet.getString("password"));
+                personArrayList.add(person) ;
+
+            }
+            connection.close();
+            return personArrayList ;
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+        return null ;
+    }
+
+
+    public static int deleteClient( int id )
+    {
+        Connection connection = getConnection() ;
+        PreparedStatement preparedStatement ;
+
+
+        try {
+            preparedStatement = connection.prepareStatement("delete from person where id=?") ;
+            preparedStatement.setInt( 1 , id );
+
+            int i =preparedStatement.executeUpdate() ; //تعيد قيمة ولا تكون -1 بل عدد العمليات التي تمت بشكل صحيح أو بشكل خاطئ
+            connection.close() ;
+            return i ;
+
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+
+        return -1 ; //there is a problem
+    }
 }

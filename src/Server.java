@@ -13,13 +13,19 @@ public class Server {
     //creating server commands
 
     ArrayList<String> clientNames = new ArrayList<>();
-    static ArrayList<String> clientNumbers = new ArrayList<>();
-
+    ArrayList<String> clientNumbers = new ArrayList<>();
     final ArrayList<ClientHandler> clientHandlerArrayList = new ArrayList<>();
     boolean serverIsOn;
 
     Server() {
         serverIsOn = true;
+        clientNumbers.add("6888");
+        clientNumbers.add("6666");
+        clientNumbers.add("6866");
+        clientNumbers.add("9997") ;
+        clientNumbers.add("7797") ;
+        clientNumbers.add("7778") ;
+
         try {
             //Data type تقوم بعمل Socket من نوع استماع
             //حيث تستسمع للاتصالات وتجهز بيانات المتصل وتعيد socket فيهاالبيانات
@@ -41,6 +47,7 @@ public class Server {
                         while (serverIsOn) {
                             System.out.println("server is on");
                             Socket clientSocket = serverSocket.accept();
+
                             System.out.println("Client Accepted");
                             ClientHandler clientHandler0 = new ClientHandler(clientSocket);
 
@@ -48,20 +55,31 @@ public class Server {
                             The code for check the information in the database
 
                              */
+
+                            Thread.sleep(5000);
+
                             clientHandler0.start();
                             clientNumbers.add(clientHandler0.getClientNumber()) ;
-                            sendOtherClientsNumbers(clientHandler0);
+                            clientHandler0.sendOtherClientsNumbers(clientNumbers) ;
                             synchronized (clientHandlerArrayList) {
-                                clientHandlerArrayList.add(clientHandler0);
+                                clientHandlerArrayList.add(clientHandler0) ;
                             }
-                            clientHandler0.makeConnectionWithAnotherClient(clientHandlerArrayList);
+
+                            String clientToConnectWith = clientHandler0.receiveConnectionNumber() ;
+                            for (int i = 0 ; i < clientHandlerArrayList.size() ; i++)
+                            if (clientHandler0.getConnectionNumber().equals(clientHandlerArrayList.get(i).getClientNumber()))
+                            {
+                                System.out.println("hhhhhhhhhhhhhhhhhhaaaaaaaaaaaaaaaaaa");
+                                clientHandler0.makeConnectionWithAnotherClient(clientHandlerArrayList ,clientToConnectWith ) ;
+                            }
+
                         }
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
+                    } catch (IOException | InterruptedException ex) {
+                        ex.printStackTrace() ;
                     }
                 }
-            };
-            handlingIncomingConnections.start();
+            } ;
+            handlingIncomingConnections.start() ;
 
 
 
@@ -334,16 +352,7 @@ public class Server {
 
      */
 
-    public void sendOtherClientsNumbers(ClientHandler clientHandler)
-    {
 
-        for(int i = 0 ; i < clientNumbers.size() ; i++)
-        {
-                if (!clientHandler.getClientNumber().equals(clientNumbers.get(i)))
-                clientHandler.sendMessage(i+"- "+clientNumbers.get(i));
-        }
-
-    }
 
     }
 
