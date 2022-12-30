@@ -27,6 +27,8 @@ public class javaDB {
 
 
     }
+
+    //Make a connection with database
     public static Connection getConnection()
     {
         try {
@@ -49,6 +51,7 @@ public class javaDB {
         return null;
     }
 
+    //Insert new client
     public static void insert(Person person) //put the parameter of the function
     {
         Connection connection = getConnection();
@@ -70,6 +73,7 @@ public class javaDB {
         }
     }
 
+    //Get all clients from the database
     public static ArrayList<Person> getClientInformation()
     {
         Connection connection = getConnection();
@@ -97,6 +101,28 @@ public class javaDB {
     }
 
 
+    //Check the information of login
+    public static boolean checkInformationInDataBase(String number , String password)
+    {
+        ArrayList<Person> allClients = getClientInformation() ;
+
+        if (allClients!=null)
+        for (int i = 0 ; i < allClients.size() ; i++)
+        {
+            if (allClients.get(i).getNumber() == Integer.parseInt(number))
+            {
+                if (allClients.get(i).getPassword().equals(password))
+                    return true;
+
+                else
+                    return false ;
+            }
+        }
+
+        return false ;
+    }
+
+    //For deleting a client
     public static int deleteClient( int id )
     {
         Connection connection = getConnection() ;
@@ -116,5 +142,52 @@ public class javaDB {
         }
 
         return -1 ; //there is a problem
+    }
+
+    //For getting a key for specific client by number
+    public static String getClientKey(String number)
+    {
+        Connection connection = getConnection();
+        Statement statement ;
+        Person  person = new Person() ;
+
+        try {
+            statement = connection.createStatement() ;
+            ResultSet resultSet = statement.executeQuery("select client_key from person where id=?") ;//for saving the result of the query
+
+            while (resultSet.next())
+            {
+                person.setClient_key(resultSet.getString(1));
+            }
+            connection.close();
+            return person.getClient_key() ;
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+        return null ;
+    }
+
+
+    public static ArrayList<String> getClientNumber()
+    {
+        Connection connection = getConnection();
+        Statement statement ;
+        ArrayList<String>  clientNumbers = new ArrayList<>() ;
+
+        try {
+            statement = connection.createStatement() ;
+            ResultSet resultSet = statement.executeQuery("select number from person") ;//for saving the result of the query
+
+            while (resultSet.next())
+            {
+                clientNumbers.add(resultSet.getInt("number")+"") ;
+
+            }
+            connection.close();
+            return clientNumbers ;
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+        return null ;
     }
 }

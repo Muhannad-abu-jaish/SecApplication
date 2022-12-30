@@ -67,11 +67,6 @@ public class ClientHandler extends Thread {
                     if (i==2)
                         break;
                 }
-                System.out.println("Hi i am out of the loop");
-
-
-                //read from the client
-                /// makeConnectionWithAnotherClient() ;
 
             }catch (IOException ex)
             {
@@ -87,6 +82,23 @@ public class ClientHandler extends Thread {
     public void run() {
 
 
+
+        try {
+            String str ;
+
+            //Received the messages from the current client(in this class)
+            while (isOn)
+            {
+                str = inputStream.readUTF() ;
+                synchronized (receivedMessages)
+                {
+                    receivedMessages.add(str) ;
+                }
+            }
+        }catch (IOException ex )
+        {
+            ex.printStackTrace();
+        }
         /*if (outputStream!=null) {
             try {
                 outputStream.close();
@@ -128,19 +140,6 @@ public class ClientHandler extends Thread {
 
 
     }
-    public ArrayList<String> getReceivedMessages()
-    {
-        return receivedMessages;
-    }
-
-  /*  public void setClientName(String name)
-    {
-        this.name = name ;
-    }
-    public String getClientName()
-    {
-        return name ;
-    }*/
 
     public void closeAll()
     {
@@ -159,72 +158,72 @@ public class ClientHandler extends Thread {
      {
          return  connectionNumber ;
      }
+     public String getClientPassword()
+     {
+         return clientPassword ;
+     }
+     public ArrayList<String> getReceivedMessages()
+    {
+        return receivedMessages;
+    }
 
-     public void makeConnectionWithAnotherClient(ArrayList<ClientHandler> clientHandlers , String connectNumber) throws IOException
+
+
+     public void makeConnectionWithAnotherClient(ClientHandler otherClient) throws IOException
      {
 
-         //getting the client to connect
-         int clientIndex = 0;
-         for (int i = 0 ; i < clientHandlers.size() ; i++)
-         {
-             if (clientHandlers.get(i).getConnectionNumber().equals(connectNumber))
-                 clientIndex = i ;
+
+             Thread handleMessages = new Thread(){
+                 @Override
+                 public void run() {
+
+                     ArrayList<String> messages = new ArrayList<>();
+                     while (true) {
+
+                         messages = getReceivedMessages() ;
+                         if (!messages.isEmpty()) {
+                             synchronized (messages) {
+                                 for (int i = 0; i < messages.size(); i++) {
+                                     //send the messages to the other client
+                                     otherClient.sendMessage(messages.get(i));
+                                 }
+                                 messages.clear();
+                             }
+                         }
 
 
-         }
+                         //Received the messages from the first client(clientHandler2)
+                         messages = otherClient.getReceivedMessages();
+                         if (!messages.isEmpty()) {
+                             synchronized (messages) {
+                                 for (int i = 0; i < messages.size(); i++) {
+                                     //send the messages to the other client
+                                     sendMessage(messages.get(i));
+                                 }
+                                 messages.clear();
+                             }
+                         }
 
-         ArrayList<String> messages;
-
-         while (true) {
-             //Received the messages from the current client(in this class)
-             messages = getReceivedMessages();
-
-             if (!messages.isEmpty()) {
-                 synchronized (messages) {
-                     for (int i = 0; i < messages.size(); i++) {
-                         //send the messages to the other client
-                         clientHandlers.get(clientIndex).sendMessage(messages.get(i));
+                         try {
+                             Thread.sleep(5);
+                         }catch (InterruptedException ex)
+                         {
+                             ex.printStackTrace();
+                         }
                      }
-                     messages.clear();
                  }
-             }
+             };
+             handleMessages.start();
 
 
-             //Received the messages from the first client(clientHandler2)
-             messages = clientHandlers.get(clientIndex).getReceivedMessages();
-             if (!messages.isEmpty()) {
-                 synchronized (messages) {
-                     for (int i = 0; i < messages.size(); i++) {
-                         //send the messages to the other client
-                         sendMessage(messages.get(i));
-                     }
-                     messages.clear();
-                 }
-             }
-
-
-             /*
-             while (isOn)
-        {
-            String message ;
-            message = inputStream.readUTF() ;
-            synchronized (receivedMessages)
-            {
-                //تعني الانتظار حتى الانتهاء من التعامل من المصفوفة في حال كان أحد يستخدمها لأننا نتعامل مع threads
-                receivedMessages.add(message) ;
-            }
-        }//
-
-              */
-    }
     }
 
-    //لاستقبال الرقم المراد التواصل معه
+    //لاستقبال الرَّقْم المراد التواصل معه
     public String receiveConnectionNumber()
     {
         try {
 
-            System.out.print("this is third message : ");
+            System.out.print("i want  : ");
             this.connectionNumber = inputStream.readUTF() ;
             System.out.println(this.connectionNumber);
             return this.connectionNumber ;
@@ -235,20 +234,14 @@ public class ClientHandler extends Thread {
         return "";
     }
 
-    public void chooseTheClient(String number)
-    {
-
-    }
     public void sendOtherClientsNumbers(ArrayList<String> clientNumbers)
     {
 
         try {
-            System.out.println("my number is : " + getClientNumber());
-            System.out.println("my password is : " + clientPassword);
-
+            //إرسال عدد الإرقام المراد عرضها لدى المستخدم
+            sendMessage(clientNumbers.size()+"");
             for(int i = 1 ; i <= clientNumbers.size() ; i++)
             {
-              //  System.out.print("the other numbers : "+clientNumbers.get(i-1)+"       ");
                 if (!getClientNumber().equals(clientNumbers.get(i-1)))
                     sendMessage(i+"- "+clientNumbers.get(i-1));
             }

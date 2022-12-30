@@ -1,5 +1,3 @@
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -9,7 +7,7 @@ import java.util.Scanner;
 public class Client {
 
     boolean isOn;
-    String name ;
+    String clientCount ;
     Socket other;
     DataInputStream otherReadSource ;
     DataOutputStream otherWriteSource ;
@@ -22,6 +20,8 @@ public class Client {
     {
         isOn = true ;
         Scanner myInput = new Scanner(System.in) ;
+        clientCount = "";
+
 
         try {
             InetAddress ip = InetAddress.getLocalHost() ;//if the client is the same laptop
@@ -32,43 +32,49 @@ public class Client {
              other = new Socket(ip , 22000); //the first parameter is my ip , the second is the server (other person is port) IP
              otherReadSource = new DataInputStream(other.getInputStream())  ;//قراءة ما وصل من المتصل الآخر
 
-            //otherReadSource = new BufferedReader(new InputStreamReader(other.getInputStream()))  ;//قراءة ما وصل من المتصل الآخر
-
 
             //كتابة أي معلومات للطرف الآخر المتصل من خلال السوكيت
             otherWriteSource = new DataOutputStream(other.getOutputStream()) ;
-            //otherWriteSource = new PrintWriter(other.getOutputStream());
-
-           /*  otherWriteSource.writeUTF(clientNumber) ;
-             otherWriteSource.writeUTF(clientPassword) ;*/
 
             otherWriteSource.writeUTF(clientNumber);
             otherWriteSource.writeUTF(clientPassword);
+            clientCount = otherReadSource.readUTF();
 
+            //get the client numbers from the server
+            //and printed it in the client console
+            showClientsNumbers() ;
 
-             //While there is a numbers are sets
-             String numbers ;
-             int k = 0 ;
-             while (k<5)
-             {
-                 numbers = otherReadSource.readUTF() ;
-                                  synchronized (otherClientNumbers)
-                 {
-                    //تعني الانتظار حتى الانتهاء من التعامل من المصفوفة في حال كان أحد يستخدمها لأننا نتعامل مع threads
-                    otherClientNumbers.add(numbers);
-                 }
-                 k++ ;
-            }
-            printClientNumbers();
 
             //Choose the client to connect  with him
             System.out.print("\nChoose a client number :");
             otherWriteSource.writeUTF(myInput.next());
 
 
-            String serverResponse = "";
-            while (true) {
+            Thread getFromOther = new Thread()
+            {
+                @Override
+                public void run() {
+                    try {
 
+                        String serverResponse = "";
+                        while (isOn) {
+
+                            serverResponse = otherReadSource.readUTF();
+                            System.out.println("Your friend said : "+serverResponse);
+
+                        }
+                    }catch (IOException ex)
+                    {
+                        ex.printStackTrace();
+                    }
+
+                }
+            };
+            getFromOther.start();
+
+            String serverResponse = "";
+            while (true)
+            {
                 serverResponse = myInput.next() ;
 
                 if (serverResponse.equalsIgnoreCase("exit"))
@@ -77,10 +83,8 @@ public class Client {
                 }
                 otherWriteSource.writeUTF(serverResponse);
 
-                serverResponse = otherReadSource.readUTF();
-                System.out.println("Your friend said : "+serverResponse);
-
             }
+            isOn = false ;
             otherWriteSource.close();
             otherReadSource.close();
             other.close();
@@ -131,6 +135,33 @@ public class Client {
     public void getTheHandleMessages()
     {
         handleMessages();
+    }
+
+    public void showClientsNumbers()
+    {
+        try {
+
+            //While there is a numbers are sets
+            String numbers ;
+            int k = 0 ;
+            int p = Integer.parseInt(clientCount) ;
+            System.out.println("numbers of clients : " + p);
+            while (k <3)
+            {
+                numbers = otherReadSource.readUTF() ;
+                synchronized (otherClientNumbers)
+                {
+                    //تعني الانتظار حتى الانتهاء من التعامل من المصفوفة في حال كان أحد يستخدمها لأننا نتعامل مع threads
+                    otherClientNumbers.add(numbers);
+                }
+                k++ ;
+            }
+            printClientNumbers();
+        }catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
+
     }
 
 }
