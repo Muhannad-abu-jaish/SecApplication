@@ -15,7 +15,6 @@ public class javaDB {
         person.setNumber(6789);
         person.setPassword("123");
         insert(person);
-
        /* ArrayList<Person> personArrayList = getPersons();
         for (int i = 0 ; i < personArrayList.size() ; i++)
         {
@@ -32,8 +31,8 @@ public class javaDB {
     public static Connection getConnection()
     {
         try {
-            // Class .forName("com.mysql.cj.jdbc.Driver"); //The new connector with database
-            Class.forName("com.mysql.jdbc.Driver"); //Connector with database
+            Class .forName("com.mysql.cj.jdbc.Driver"); //The new connector with database
+           // Class.forName("com.mysql.jdbc.Driver"); //Connector with database
             String url = "jdbc:mysql://localhost:3306/" ; //java data base connectivity
             String  dataBaseName = "testproject" ;
             String  userName = "root" ;
@@ -153,11 +152,11 @@ public class javaDB {
 
         try {
             statement = connection.createStatement() ;
-            ResultSet resultSet = statement.executeQuery("select client_key from person where id=?") ;//for saving the result of the query
+            ResultSet resultSet = statement.executeQuery("select client_key from person where number = "+number) ;//for saving the result of the query
 
             while (resultSet.next())
             {
-                person.setClient_key(resultSet.getString(1));
+                person.setClient_key(resultSet.getString("client_key"));
             }
             connection.close();
             return person.getClient_key() ;

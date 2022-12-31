@@ -1,3 +1,4 @@
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -43,25 +44,19 @@ public class Server {
                 @Override
                 public void run() {
                     try {
-
                         while (serverIsOn) {
                             System.out.println("server is on");
                             Socket clientSocket = serverSocket.accept();
-
                             System.out.println("Client Accepted");
                             ClientHandler clientHandler0 = new ClientHandler(clientSocket);
-
                             //The code for check the information in the database
-                            if (javaDB.checkInformationInDataBase( clientHandler0.getClientNumber() , clientHandler0.getClientPassword()))
+                            if(javaDB.checkInformationInDataBase( clientHandler0.getClientNumber() , clientHandler0.getClientPassword()))
                             {
-
                                 System.out.println("Login is done");
                                 //إضافة رقم العميل لمصفوفة العملاء المرتبطين بالسيرفر
                                 // فك التعليق سيكون بعد الإضافة من الداتا بيز
                                //  clientNumbers.add(clientHandler0.getClientNumber()) ;
-
                                 clientHandler0.sendOtherClientsNumbers(clientNumbers) ;
-
                                 //إدخال العميل
                                 synchronized (clientHandlerArrayList) {
                                     clientHandlerArrayList.add(clientHandler0) ;
@@ -71,26 +66,33 @@ public class Server {
                                 //إذا كان موجود يتم التواصل معه و إلا انتظار دخول هذا العميل لإرسال الرسائل له
 
                                 String connectionNumber = clientHandler0.receiveConnectionNumber() ;
+                                String IV = clientHandler0.receiveInitVector();
+                                SecretKey KEY = clientHandler0.receiveKey();
                                 for (int i = 0 ; i < clientHandlerArrayList.size() ; i++)
                                 {
 
                                     if (clientHandler0.getConnectionNumber().equals(clientHandlerArrayList.get(i).getClientNumber()))
                                     {
                                         System.out.println("hhhhhhhhhhhhhhhhhhaaaaaaaaaaaaaaaaaa");
-
                                         clientHandler0.start();
                                         clientHandlerArrayList.get(i).start();
                                         clientHandler0.makeConnectionWithAnotherClient(clientHandlerArrayList.get(i) ) ;
                                     }
                                 }
-
-                            }//End of if statement
+        }
+                            /*else{
+                                Person person = new Person();
+                                person.setNumber(Integer.parseInt(clientHandler0.clientNumber));
+                                person.setPassword(clientHandler0.getClientPassword());
+                                person.setClient_key(generateKey());
+                                javaDB.insert(person);//End of if statement
+                            }*/
                         }//End of while statement
-                    } catch (IOException ex) {
+                    } catch (Exception ex) {
                         ex.printStackTrace() ;
                     }
                 }//End of run method
-            } ; //End of handlingIncomingConnections
+            }; //End of handlingIncomingConnections
             handlingIncomingConnections.start() ;
 
 
@@ -100,6 +102,7 @@ public class Server {
 
             }
         }
+
 
     public void printAllUserNames()
     {

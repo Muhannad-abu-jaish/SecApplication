@@ -1,7 +1,11 @@
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
 import java.io.*;
 import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
+import static java.lang.System.err;
 import static java.lang.System.in;
 
 public class ClientHandler extends Thread {
@@ -16,13 +20,21 @@ public class ClientHandler extends Thread {
     DataOutputStream outputStream ;
     String clientNumber ;
     String clientPassword ;
+    SecretKey KEY;
+    Mac mac;
+    String IV ;
     //BufferedReader inputStream ;
     //PrintWriter outputStream ;
     String connectionNumber ;
     String name ;
     final ArrayList<String> receivedMessages = new ArrayList<>() ;
 
-
+     /*void INITCRYPTO(String KEY1 , String KEY2 , String IV1 ,String IV2 ){
+         this.KEY1 = KEY1;
+         this.KEY2 = KEY2;
+         this.IV1 = IV1;
+         this.IV2 = IV2;
+     }*/
     ClientHandler(Socket clientSocket)
     {
         client = clientSocket ;
@@ -80,22 +92,35 @@ public class ClientHandler extends Thread {
 
     @Override
     public void run() {
-
-
-
         try {
-            String str ;
-
+            String str ="";
+            int i = 0;
             //Received the messages from the current client(in this class)
             while (isOn)
             {
-                str = inputStream.readUTF() ;
-                synchronized (receivedMessages)
-                {
-                    receivedMessages.add(str) ;
+                if(i%2!=0){
+                    String macOld = inputStream.readUTF();
+                    Mac mac = Mac.getInstance("HmacSHA256");
+                    mac.init(KEY);
+                    byte[] macResult = mac.doFinal(str.getBytes());
+                    String macNew = new String(macResult);
+                    if(macOld.equals(macNew)){
+                        System.out.println("MAC IS FOUND");
+                        synchronized (receivedMessages)
+                        {
+                            str = Crypto.decrypt(str,KEY,IV);
+                            receivedMessages.add(str) ;
+                        }
+                    }
+                    else {
+                        throw new Exception("ERROR IN MAC IN SERVER");
+                    }
+                }else{
+                    str = inputStream.readUTF() ;
                 }
+                i++;
             }
-        }catch (IOException ex )
+        }catch (Exception ex )
         {
             ex.printStackTrace();
         }
@@ -129,7 +154,6 @@ public class ClientHandler extends Thread {
 
     public void sendMessage(String message)
     {
-
         try {
             if (isOn)
                 outputStream.writeUTF(message);
@@ -162,6 +186,8 @@ public class ClientHandler extends Thread {
      {
          return clientPassword ;
      }
+     public String getIV(){return IV;}
+    public SecretKey getKEY(){return KEY;}
      public ArrayList<String> getReceivedMessages()
     {
         return receivedMessages;
@@ -185,7 +211,16 @@ public class ClientHandler extends Thread {
                              synchronized (messages) {
                                  for (int i = 0; i < messages.size(); i++) {
                                      //send the messages to the other client
-                                     otherClient.sendMessage(messages.get(i));
+                                     try {
+                                         mac = Mac.getInstance("HmacSHA256");
+                                         mac.init(otherClient.getKEY());
+                                         byte[] macResult = mac.doFinal(Crypto.encrypt(messages.get(i),otherClient.getKEY(),otherClient.getIV()).getBytes());
+                                         String MACFINAL = new String(macResult);
+                                         otherClient.sendMessage(Crypto.encrypt(messages.get(i),otherClient.getKEY(),otherClient.getIV()));
+                                         otherClient.sendMessage(MACFINAL);
+                                     } catch (Exception e) {
+                                         e.printStackTrace();
+                                     }
                                  }
                                  messages.clear();
                              }
@@ -198,7 +233,16 @@ public class ClientHandler extends Thread {
                              synchronized (messages) {
                                  for (int i = 0; i < messages.size(); i++) {
                                      //send the messages to the other client
-                                     sendMessage(messages.get(i));
+                                     try {
+                                         mac = Mac.getInstance("HmacSHA256");
+                                         mac.init(getKEY());
+                                         byte[] macResult = mac.doFinal(Crypto.encrypt(messages.get(i),getKEY(),getIV()).getBytes());
+                                         String MACFINAL = new String(macResult);
+                                         sendMessage(Crypto.encrypt(messages.get(i),getKEY(),getIV()));
+                                         sendMessage(MACFINAL);
+                                     } catch (Exception e) {
+                                         e.printStackTrace();
+                                     }
                                  }
                                  messages.clear();
                              }
@@ -251,5 +295,14 @@ public class ClientHandler extends Thread {
             ex.printStackTrace();
         }
 
+    }
+
+    public String receiveInitVector() throws IOException {
+       this.IV = inputStream.readUTF();
+      return this.IV;
+    }
+    public SecretKey receiveKey() throws Exception {
+        this.KEY = Crypto.createAESKey(this.getClientNumber());
+        return this.KEY;
     }
 }

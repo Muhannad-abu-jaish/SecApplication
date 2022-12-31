@@ -1,7 +1,16 @@
+import com.mysql.cj.util.Base64Decoder;
+
+import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Scanner;
 
 public class Client {
@@ -9,6 +18,10 @@ public class Client {
     boolean isOn;
     String clientCount ;
     Socket other;
+    static Cipher cipher;
+    static Mac mac;
+    static SecretKey KEY;
+    static String IV;
     DataInputStream otherReadSource ;
     DataOutputStream otherWriteSource ;
 
@@ -16,12 +29,12 @@ public class Client {
     PrintWriter otherWriteSource ;
      */
     final ArrayList<String> otherClientNumbers = new ArrayList<>() ;
-    Client(String clientNumber , String clientPassword)
-    {
+    Client(String clientNumber , String clientPassword) throws Exception {
+        mac = Mac.getInstance("HmacSHA256");
         isOn = true ;
         Scanner myInput = new Scanner(System.in) ;
         clientCount = "";
-
+        cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
 
         try {
             InetAddress ip = InetAddress.getLocalHost() ;//if the client is the same laptop
@@ -44,10 +57,13 @@ public class Client {
             //and printed it in the client console
             showClientsNumbers() ;
 
-
+            //KEY = javaDB.getClientKey(clientNumber);
+            KEY = Crypto.createAESKey(clientNumber);
+            IV =getIVSecureRandom();
             //Choose the client to connect  with him
             System.out.print("\nChoose a client number :");
             otherWriteSource.writeUTF(myInput.next());
+            otherWriteSource.writeUTF(IV);
 
 
             Thread getFromOther = new Thread()
@@ -55,15 +71,28 @@ public class Client {
                 @Override
                 public void run() {
                     try {
-
                         String serverResponse = "";
+                        int i = 0 ;
                         while (isOn) {
-
-                            serverResponse = otherReadSource.readUTF();
-                            System.out.println("Your friend said : "+serverResponse);
-
+                            if (i%2!=0){
+                                String macOld = otherReadSource.readUTF();
+                                Mac mac = Mac.getInstance("HmacSHA256");
+                                mac.init(KEY);
+                                byte[] macResult = mac.doFinal(serverResponse.getBytes());
+                                String macNew = new String(macResult);
+                                if(macOld.equals(macNew)) {
+                                    System.out.println("Your friend said : "+ Crypto.decrypt(serverResponse,KEY,IV));
+                                }
+                                else{
+                                    throw new Exception("ERROR IN MAC IN CLIENT");
+                                }
+                                }
+                            else{
+                                serverResponse = otherReadSource.readUTF();
+                            }
+                            i++;
                         }
-                    }catch (IOException ex)
+                    } catch (Exception ex)
                     {
                         ex.printStackTrace();
                     }
@@ -81,19 +110,33 @@ public class Client {
                 {
                     break;
                 }
-                otherWriteSource.writeUTF(serverResponse);
-
+                mac.init(KEY);
+                byte[] macResult = mac.doFinal(Crypto.encrypt(serverResponse , KEY , IV).getBytes());
+                String MACFINAL = new String(macResult);
+                otherWriteSource.writeUTF(Crypto.encrypt(serverResponse , KEY , IV));
+                otherWriteSource.writeUTF(MACFINAL);
             }
             isOn = false ;
             otherWriteSource.close();
             otherReadSource.close();
             other.close();
-        } catch (IOException e) {
+        } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }
 
 
+    public static String getIVSecureRandom() throws NoSuchAlgorithmException, NoSuchPaddingException {
+        String AlphaNumericString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "abcdefghijklmnopqrstuvxyz";
+        StringBuilder sb = new StringBuilder(16);
+        for (int i = 0; i < 16; i++) {
+
+            int index = (int) (AlphaNumericString.length() * Math.random());
+
+            sb.append(AlphaNumericString.charAt(index));
+        }
+        return sb.toString();
+    }
 
     public void printClientNumbers()
     {
@@ -163,5 +206,6 @@ public class Client {
         }
 
     }
+
 
 }

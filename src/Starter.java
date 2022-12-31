@@ -1,9 +1,10 @@
+import javax.crypto.NoSuchPaddingException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Scanner;
 
 public class Starter {
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws Exception {
         Scanner myInput = new Scanner(System.in) ;
 
         Thread firstThread = new Thread()
