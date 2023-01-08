@@ -1,12 +1,12 @@
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
-import static java.lang.System.err;
-import static java.lang.System.in;
+import static java.lang.System.*;
 
 public class ClientHandler extends Thread {
 
@@ -100,12 +100,14 @@ public class ClientHandler extends Thread {
             {
                 if(i%2!=0){
                     String macOld = inputStream.readUTF();
+                    System.out.println("Mac From Client is : " + macOld);
                     Mac mac = Mac.getInstance("HmacSHA256");
                     mac.init(KEY);
                     byte[] macResult = mac.doFinal(str.getBytes());
                     String macNew = new String(macResult);
                     if(macOld.equals(macNew)){
                         System.out.println("MAC IS FOUND");
+                        System.out.println("Data Encrypted from Client : " + str);
                         synchronized (receivedMessages)
                         {
                             str = Crypto.decrypt(str,KEY,IV);
@@ -187,7 +189,7 @@ public class ClientHandler extends Thread {
          return clientPassword ;
      }
      public String getIV(){return IV;}
-    public SecretKey getKEY(){return KEY;}
+     public SecretKey getKEY(){return KEY;}
      public ArrayList<String> getReceivedMessages()
     {
         return receivedMessages;
@@ -216,7 +218,10 @@ public class ClientHandler extends Thread {
                                          mac.init(otherClient.getKEY());
                                          byte[] macResult = mac.doFinal(Crypto.encrypt(messages.get(i),otherClient.getKEY(),otherClient.getIV()).getBytes());
                                          String MACFINAL = new String(macResult);
-                                         otherClient.sendMessage(Crypto.encrypt(messages.get(i),otherClient.getKEY(),otherClient.getIV()));
+                                         String data =Crypto.encrypt(messages.get(i),otherClient.getKEY(),otherClient.getIV());
+                                         System.out.println("Send Data Encrypted to Client : " + data);
+                                         System.out.println("Send Mac Data To Client : " + MACFINAL);
+                                         otherClient.sendMessage(data);
                                          otherClient.sendMessage(MACFINAL);
                                      } catch (Exception e) {
                                          e.printStackTrace();
@@ -238,7 +243,10 @@ public class ClientHandler extends Thread {
                                          mac.init(getKEY());
                                          byte[] macResult = mac.doFinal(Crypto.encrypt(messages.get(i),getKEY(),getIV()).getBytes());
                                          String MACFINAL = new String(macResult);
-                                         sendMessage(Crypto.encrypt(messages.get(i),getKEY(),getIV()));
+                                         String data =Crypto.encrypt(messages.get(i),getKEY(),getIV());
+                                         System.out.println("Send Data Encrypted to Client : " + data);
+                                         System.out.println("Send Mac Data To Client : " + MACFINAL);
+                                         sendMessage(data);
                                          sendMessage(MACFINAL);
                                      } catch (Exception e) {
                                          e.printStackTrace();
@@ -294,15 +302,15 @@ public class ClientHandler extends Thread {
         {
             ex.printStackTrace();
         }
-
     }
-
     public String receiveInitVector() throws IOException {
        this.IV = inputStream.readUTF();
+        System.out.println("IV From Client : " + IV);
       return this.IV;
     }
     public SecretKey receiveKey() throws Exception {
         this.KEY = Crypto.createAESKey(this.getClientNumber());
+        System.out.println("KEY From Client : " + DatatypeConverter.printHexBinary(KEY.getEncoded()));
         return this.KEY;
     }
 }

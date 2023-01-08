@@ -17,7 +17,8 @@ public class Crypto {
             throws Exception {
         SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
 
-        KeySpec passwordBasedEncryptionKeySpec = new PBEKeySpec(mobile.toCharArray() , key.getBytes() , 12288 , 256);
+        KeySpec passwordBasedEncryptionKeySpec = new PBEKeySpec(mobile.toCharArray() , key.getBytes() ,
+                12288 , 256);
         SecretKey secretKeyFromPBKDF2 = secretKeyFactory.generateSecret(passwordBasedEncryptionKeySpec);
         return  new SecretKeySpec(secretKeyFromPBKDF2.getEncoded(), "AES");
     }

@@ -3,6 +3,7 @@ import com.mysql.cj.util.Base64Decoder;
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -60,9 +61,11 @@ public class Client {
             //KEY = javaDB.getClientKey(clientNumber);
             KEY = Crypto.createAESKey(clientNumber);
             IV =getIVSecureRandom();
+            System.out.println("MY KEY : " + DatatypeConverter.printHexBinary(KEY.getEncoded()));
+            System.out.println("MY IV : "+ IV);
             //Choose the client to connect  with him
             System.out.print("\nChoose a client number :");
-            otherWriteSource.writeUTF(myInput.next());
+            otherWriteSource.writeUTF(myInput.nextLine());
             otherWriteSource.writeUTF(IV);
 
 
@@ -76,11 +79,13 @@ public class Client {
                         while (isOn) {
                             if (i%2!=0){
                                 String macOld = otherReadSource.readUTF();
+                                System.out.println("Mac From Server is : " + macOld);
                                 Mac mac = Mac.getInstance("HmacSHA256");
                                 mac.init(KEY);
                                 byte[] macResult = mac.doFinal(serverResponse.getBytes());
                                 String macNew = new String(macResult);
                                 if(macOld.equals(macNew)) {
+                                    System.out.println("Data Encrypted From Server : " + serverResponse);
                                     System.out.println("Your friend said : "+ Crypto.decrypt(serverResponse,KEY,IV));
                                 }
                                 else{
@@ -104,7 +109,7 @@ public class Client {
             String serverResponse = "";
             while (true)
             {
-                serverResponse = myInput.next() ;
+                serverResponse = myInput.nextLine() ;
 
                 if (serverResponse.equalsIgnoreCase("exit"))
                 {
@@ -113,7 +118,10 @@ public class Client {
                 mac.init(KEY);
                 byte[] macResult = mac.doFinal(Crypto.encrypt(serverResponse , KEY , IV).getBytes());
                 String MACFINAL = new String(macResult);
-                otherWriteSource.writeUTF(Crypto.encrypt(serverResponse , KEY , IV));
+                String data = Crypto.encrypt(serverResponse , KEY , IV);
+                System.out.println("Sending Encrypted Data To Server : " + data);
+                System.out.println("Sending Mac Data To Server : " + MACFINAL);
+                otherWriteSource.writeUTF(data);
                 otherWriteSource.writeUTF(MACFINAL);
             }
             isOn = false ;
@@ -189,7 +197,7 @@ public class Client {
             int k = 0 ;
             int p = Integer.parseInt(clientCount) ;
             System.out.println("numbers of clients : " + p);
-            while (k <3)
+            while (k <p-1)
             {
                 numbers = otherReadSource.readUTF() ;
                 synchronized (otherClientNumbers)
